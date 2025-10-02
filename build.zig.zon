@@ -1,0 +1,19 @@
+.{
+    .name = .runes,
+    .version = "0.0.1-dev",
+    .fingerprint = 0x8a1e4d52d35b2c45, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.15.1",
+    .dependencies = .{
+        .mibu = .{
+            .url = "git+https://github.com/xyaman/mibu#1ab28d3a39c809227e1f487525b2103b5146e70d",
+            .hash = "mibu-0.0.1-dev-Ddr1rhLEAACGrY1b5mBHo7HtjXfGFY4Q1Px6-3KJMl2s",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        //"README.md",
+    },
+}
