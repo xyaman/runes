@@ -24,6 +24,7 @@ x: usize = 0, // this value is set in `inscribe`
 y: usize = 0, // this value is set in `inscribe`
 
 // common ui
+focused: bool = false,
 hidden: bool = false,
 
 placeholder: []const u8 = "<input>",
@@ -76,33 +77,40 @@ pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
     self.w = self.buffer.items.len + 2 * @as(usize, @intFromBool(self.border));
     self.h = 1 + 2 * @as(usize, @intFromBool(self.border));
 
-    const render_x = x + @intFromBool(self.border);
+    var render_x = x + @intFromBool(self.border);
     const render_y = y + @intFromBool(self.border);
+
+    var cursor_style = self.style.text;
+    cursor_style.bg = .{ .xterm = .white };
 
     // TODO: Add wrap support
     if (self.buffer.items.len == 0) {
-        try stone.addText(render_x, render_y, self.placeholder, self.style.placeholder);
+        if (self.focused) {
+            try stone.addText(render_x, render_y, " ", cursor_style);
+        } else {
+            try stone.addText(render_x, render_y, self.placeholder, self.style.placeholder);
+        }
     } else {
-        var cursor_style = self.style.text;
-        cursor_style.bg = .{ .xterm = .white };
-
+        // If cursor is at the end, just render normally plus the cursor
         if (self.cursor == self.buffer.items.len) {
             try stone.addText(render_x, render_y, self.buffer.items, self.style.text);
             try stone.addText(render_x + self.buffer.items.len, render_y, " ", cursor_style);
         } else {
-            try stone.addText(render_x, render_y, self.buffer.items, self.style.text);
+            // Render before cursor
+            if (self.cursor > 0) {
+                try stone.addText(render_x, render_y, self.buffer.items[0..self.cursor], self.style.text);
+                render_x += self.cursor;
+            }
+
+            // Render cursor itself
+            try stone.addText(render_x, render_y, self.buffer.items[self.cursor .. self.cursor + 1], cursor_style);
+            render_x += 1;
+
+            // Render after cursor
+            if (self.cursor + 1 < self.buffer.items.len) {
+                try stone.addText(render_x, render_y, self.buffer.items[self.cursor + 1 ..], self.style.text);
+            }
         }
-
-        // draw until cursor position, add background, render normally
-        // try stone.addText(render_x, render_y, self.buffer.items[0..self.cursor], self.style.text);
-        // render_x += self.buffer.items[0..self.cursor].len;
-        //
-        // try stone.addText(render_x, render_y, self.buffer.items[self.cursor .. self.cursor + 1], cursor_style);
-        // render_x += self.buffer.items[self.cursor .. self.cursor + 1].len;
-
-        // if (self.buffer.items.len > 1) {
-        //     try stone.addText(render_x, render_y, self.buffer.items[self.cursor + 1 ..], self.style.text);
-        // }
     }
 
     if (self.border) try ui.drawWithBorder(self, stone, null);
@@ -174,12 +182,34 @@ pub fn handleInput(self: *Self, event: mibu.events.Event) !bool {
 
                 return true;
             },
-            .left => {
-                if (self.cursor > 0) self.cursor -= 1;
+            .right => {
+                if (k.mods.ctrl) {
+                    // ctrl: move to the start of the next word
+                    var i = self.cursor;
+                    const len = self.buffer.items.len;
+
+                    // Skip current word if in middle of one
+                    // Skip any spaces
+                    while (i < len and self.buffer.items[i] != ' ') : (i += 1) {}
+                    while (i < len and self.buffer.items[i] == ' ') : (i += 1) {}
+                    self.cursor = i;
+                } else if (self.cursor < self.buffer.items.len) {
+                    self.cursor += 1;
+                }
                 return true;
             },
-            .right => {
-                if (self.cursor < self.buffer.items.len) self.cursor += 1;
+            .left => {
+                if (k.mods.ctrl) {
+                    // ctrl: move to the start of the previous word
+                    var i = self.cursor;
+                    // Skip any spaces before the cursor
+                    // Skip the word itself
+                    while (i > 0 and self.buffer.items[i - 1] == ' ') : (i -= 1) {}
+                    while (i > 0 and self.buffer.items[i - 1] != ' ') : (i -= 1) {}
+                    self.cursor = i;
+                } else if (self.cursor > 0) {
+                    self.cursor -= 1;
+                }
                 return true;
             },
             else => {},

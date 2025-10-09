@@ -98,6 +98,7 @@ const TodoList = struct {
                 switch (event.key.code) {
                     .enter => {
                         self.input_selected = false;
+                        self.input.focused = false;
                         try self.insert(self.input.buffer.items);
                         self.input.clearRetainingCapacity();
                         self.input.placeholder = "Press i to insert";
@@ -105,6 +106,7 @@ const TodoList = struct {
                     },
                     .esc => {
                         self.input_selected = false;
+                        self.input.focused = false;
                         self.input.clearRetainingCapacity();
                         self.input.placeholder = "Press i to insert";
                         return true;
@@ -118,12 +120,13 @@ const TodoList = struct {
         // navigation - list mode
         if (event.matchesChar('i', .{})) {
             self.input_selected = true;
+            self.input.focused = true;
             self.input.placeholder = "";
             return true;
         }
 
         // list (2nd priority)
-        if (event == .key and event.key.code == .enter) {
+        if (event == .key and (event.key.code == .enter or event.matchesChar(' ', .{}))) {
             self.todos.items[self.list.selected].toggle();
             return true;
         }
@@ -160,7 +163,7 @@ pub fn main() !void {
         try todolist.insert(t);
     }
 
-    var help_text = Text.init("  i: add todo ・ enter: toggle todo・↑/k: up ・↓/j: down", .{ .fg = .{ .xterm = .grey_50 } }, false);
+    var help_text = Text.init("  i: add todo ・ enter/space: toggle todo・↑/k: up ・↓/j: down", .{ .fg = .{ .xterm = .grey_50 } }, false);
     var root = Stack.init(.{
         .children = &.{
             .init(&todolist, .{}),
