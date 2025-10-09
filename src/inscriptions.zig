@@ -51,6 +51,7 @@ pub const Text = @import("inscriptions/Text.zig");
 pub const Input = @import("inscriptions/Input.zig");
 pub const List = @import("inscriptions/list.zig").List;
 pub const Stack = @import("inscriptions/Stack.zig");
+pub const Dropdown = @import("inscriptions/Dropdown.zig");
 
 test {
     const std = @import("std");
@@ -63,11 +64,12 @@ test "inscriptions are well-formed" {
     var failed = false;
 
     const Inscriptions = .{
-        // helper: @import("inscriptions/Artisan.zig"),
-        @import("inscriptions/Text.zig"),
-        @import("inscriptions/Input.zig"),
-        // @import("inscriptions/list.zig").List,
-        @import("inscriptions/Stack.zig"),
+        // helper: Artisan,
+        // generic: list,
+        Text,
+        Input,
+        Stack,
+        Dropdown,
     };
 
     inline for (Inscriptions) |Inscription| {

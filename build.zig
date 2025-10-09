@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
     const examples = [_][]const u8{
         "0_simplelist",
         "1_todolist",
+        "2_simpledropdown",
     };
     for (examples) |name| {
         const example_exe = b.addExecutable(.{
