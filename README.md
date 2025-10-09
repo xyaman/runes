@@ -4,9 +4,10 @@
 
 ## Overview
 
-
 **Runes** is a lightweight UI framework written in Zig, designed for composable, responsive terminal or graphical interfaces.
 It provides a structured approach to building interactive applications through a hierarchy of layout and widget abstractions.
+
+Documentation (auto-generated): [https://xyaman.github.io/runes/](https://xyaman.github.io/runes/)
 
 ---
 

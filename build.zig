@@ -42,4 +42,22 @@ pub fn build(b: *std.Build) void {
         const example_step = b.step(name, b.fmt("Run {s} example", .{name}));
         example_step.dependOn(&run_example.step);
     }
+
+    // -- documentation
+    const docs_step = b.step("docs", "Build the runes library docs");
+    const docs_obj = b.addObject(.{
+        .name = "runes",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const docs = docs_obj.getEmittedDocs();
+    docs_step.dependOn(&b.addInstallDirectory(.{
+        .source_dir = docs,
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    }).step);
 }
