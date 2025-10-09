@@ -5,6 +5,11 @@ pub const Size = struct {
     h: usize,
 };
 
+pub const Margin = struct {
+    x: usize = 0,
+    y: usize = 0,
+};
+
 // https://github.com/gdamore/tcell/blob/master/runes.go
 pub const chars = struct {
     const DArrow = '↓';
@@ -126,8 +131,8 @@ pub fn drawWithBorder(inscription: anytype, stone: *Runestone, title: ?[]const u
     // Measure inner component
     const w = inscription.w;
     const h = inscription.h;
-    const x = inscription.x;
-    const y = inscription.y;
+    const x = inscription.x + inscription.margin.x;
+    const y = inscription.y + inscription.margin.y;
 
     // Draw top
     if (title) |t| {

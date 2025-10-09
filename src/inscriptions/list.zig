@@ -29,11 +29,18 @@ pub fn List(comptime T: type) type {
     return struct {
         const Self = @This();
 
+        // geometry
         h: usize = 0,
         w: usize = 0, // this value is set in `inscribe`
         x: usize = 0, // this value is set in `inscribe`
         y: usize = 0, // this value is set in `inscribe`
         max_h: usize,
+
+        // common ui
+        hidden: bool = false,
+        focused: bool = false,
+        border: bool,
+        margin: ui.Margin,
 
         items: []T,
         selected: usize = 0,
@@ -41,15 +48,22 @@ pub fn List(comptime T: type) type {
 
         // ui
         title: ?[]const u8 = null,
-        border: bool = false,
+
+        pub const InitOptions = struct {
+            border: bool = false,
+            margin: ui.Margin = .{},
+            max_height: usize = 10,
+        };
 
         /// Create a new List
-        pub fn init(items: []T, max_height: usize) Self {
+        pub fn init(items: []T, options: InitOptions) Self {
             return Self{
                 .items = items,
                 .selected = 0,
                 .first_visible = 0,
-                .max_h = max_height,
+                .max_h = options.max_height,
+                .border = options.border,
+                .margin = options.margin,
             };
         }
 
@@ -70,14 +84,20 @@ pub fn List(comptime T: type) type {
             self.x = sx;
             self.y = sy;
 
-            const x = sx + @intFromBool(self.border);
-            const y = sy + @intFromBool(self.border);
+            if (self.hidden) {
+                self.w = 0;
+                self.h = 0;
+                return;
+            }
+
+            const base_x = sx + self.margin.x + @intFromBool(self.border);
+            const base_y = sy + self.margin.y + @intFromBool(self.border);
 
             var offset: usize = 0;
             if (self.title) |title| {
                 // avoid adding title if the title is in the border
                 if (!self.border) {
-                    try stone.addText(x, y, title, .{});
+                    try stone.addText(base_x, base_y, title, .{});
                     self.w = @max(title.len, self.w);
                     offset += 1;
                 }
@@ -90,7 +110,7 @@ pub fn List(comptime T: type) type {
                 var item = self.items[idx];
                 const len = blk: {
                     if (@hasDecl(T, "inscribe")) {
-                        var artisan = Artisan{ .x = x, .y = y + row + offset, .stone = stone };
+                        var artisan = Artisan{ .x = base_x, .y = base_y + row + offset, .stone = stone };
                         break :blk try item.inscribe(idx, self.selected == idx, &artisan);
                     } else if (@hasField(T, "label")) {
                         // Default, simple implementation
@@ -101,25 +121,25 @@ pub fn List(comptime T: type) type {
                             .fg = if (idx == self.selected) .{ .xterm = .red } else .default,
                         };
 
-                        break :blk try stone.addTextFmt(x, y + row + offset, "{s} {d}. {s}", .{ prefix, idx + 1, item.label }, style);
+                        break :blk try stone.addTextFmt(base_x, base_y + row + offset, "{s} {d}. {s}", .{ prefix, idx + 1, item.label }, style);
                     } else {
                         // already compile-error-checked above
                         unreachable;
                     }
                 };
 
-                // add 2 as width/height is it has border
-                self.w = @max(len + 2 * @as(usize, @intFromBool(self.border)), self.w);
-                self.h = offset + row + 1 + 2 * @as(usize, @intFromBool(self.border));
+                const border_w = 2 * @as(usize, @intFromBool(self.border));
+                self.w = @max(len + border_w + 2 * self.margin.x, self.w);
+                self.h = offset + row + 1 + border_w + 2 * self.margin.y;
             }
 
             // render border
-            if (self.border) {
-                try ui.drawWithBorder(self, stone, self.title);
-            }
+            if (self.border) try ui.drawWithBorder(self, stone, self.title);
         }
 
         pub fn handleInput(self: *Self, event: mibu.events.Event) !bool {
+            if (self.hidden) return false;
+
             switch (event) {
                 .key => |k| switch (k.code) {
                     .up => self.up(),
@@ -133,7 +153,7 @@ pub fn List(comptime T: type) type {
                 },
                 .mouse => |m| {
                     if (m.button != .left) return false;
-                    if (!(m.x >= self.x and m.x < self.x + self.w and m.y >= self.y and m.y < self.y + self.h)) return false;
+                    if (!(m.x >= self.x and m.x <= self.x + self.w and m.y >= self.y and m.y <= self.y + self.h)) return false;
 
                     // find the selected item
                     for (0..self.h) |row| {
@@ -142,10 +162,15 @@ pub fn List(comptime T: type) type {
 
                         // + 1: 0-index array
                         // + 1: rows starts at 1 (mibu)
-                        if (m.y == self.y + row + 2) {
+                        if (m.y == self.y + row + 1) {
                             self.selected = self.first_visible + row;
                             return true;
                         }
+
+                        // if (m.y == self.y + row + self.margin.y + @intFromBool(self.border)) {
+                        //     self.selected = self.first_visible + row;
+                        //     return true;
+                        // }
                     }
                 },
                 else => return false,

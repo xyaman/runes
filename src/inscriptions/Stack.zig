@@ -1,3 +1,10 @@
+//! Stack.zig
+//!
+//! Provides a flexible stacking layout component for arranging child UI components
+//! either vertically or horizontally.
+//! Supports sequential and factor-based layout and gaps between children.
+//! Each child must implement the `Stack.Child` interface
+
 const std = @import("std");
 const assert = std.debug.assert;
 const mibu = @import("mibu");
@@ -10,18 +17,24 @@ const Rune = @import("../Rune.zig");
 
 const Self = @This();
 
-// rect
+// geometry
 h: usize = 0, // this value is set in `inscribe`
 w: usize = 0, // this value is set in `inscribe`
 x: usize = 0, // this value is set in `inscribe`
 y: usize = 0, // this value is set in `inscribe`
+//
+// common ui
+hidden: bool = false,
+focused: bool = false,
+border: bool,
+margin: ui.Margin,
 
 children: []const Child,
 direction: Direction,
 layout: Layout,
 gap: usize,
-margin: Margin,
 
+/// Represents a child UI component inside the stack.
 pub const Child = struct {
     // interface
     ptr: *anyopaque,
@@ -128,40 +141,51 @@ pub const Layout = enum {
     factor,
 };
 
-pub const Margin = struct {
-    x: usize = 0,
-    y: usize = 0,
-};
-
 pub const InitOptions = struct {
+    border: bool = false,
+    margin: ui.Margin = .{},
     children: []const Child,
     direction: Direction = .vertical,
     layout: Layout = .sequential,
     gap: usize = 1,
-    margin: Margin = .{},
 };
 
-// Create a new VStack
+/// Initialize a new Stack with options
 pub fn init(options: InitOptions) Self {
     return Self{
+        .border = options.border,
+        .margin = options.margin,
         .children = options.children,
         .direction = options.direction,
         .layout = options.layout,
         .gap = options.gap,
-        .margin = options.margin,
     };
 }
 
-/// Draw the self to the Runestone at (x, y)
+/// Draw the stack and its children on the Runestone
 pub fn inscribe(self: *Self, rs: *Runestone, x: usize, y: usize) !void {
-    var curry: usize = y + self.margin.y;
-    var currx: usize = x + self.margin.x;
+    var curry: usize = y + self.margin.y + @intFromBool(self.border);
+    var currx: usize = x + self.margin.x + @intFromBool(self.border);
+
+    if (self.hidden) {
+        self.w = 0;
+        self.h = 0;
+        for (self.children) |child| {
+            child.setGeometry(0, 0, 0, 0);
+        }
+
+        return;
+    }
 
     // total sum of factors
     var total_factor: usize = 0;
     for (self.children) |child| {
         total_factor += child.factor;
     }
+
+    // stack dimensions are re-calculated on every draw
+    self.h = 0;
+    self.w = 0;
 
     // nothing to draw
     if (total_factor == 0) return;
@@ -174,12 +198,9 @@ pub fn inscribe(self: *Self, rs: *Runestone, x: usize, y: usize) !void {
                 .factor => @divFloor(available_h, total_factor),
             };
 
-            // stack height is re-calculated on every draw
-            // (inscriptions may change size, hide etc)
-            self.h = 0;
-
             for (self.children) |child| {
                 try child.inscribe(rs, currx, curry);
+                const size = child.measure();
                 switch (self.layout) {
                     .factor => {
                         const sy = curry;
@@ -189,16 +210,15 @@ pub fn inscribe(self: *Self, rs: *Runestone, x: usize, y: usize) !void {
                         // not in the initial
                         // when using .factor the height is determined by the stack,
                         // so we need to update the child's geometry
-                        const size = child.measure();
                         child.setGeometry(currx, sy, size.w, unit_h * child.factor);
                         self.h += curry;
                     },
                     .sequential => {
-                        const size = child.measure();
                         curry += size.h + self.gap;
-                        self.h += size.h + self.gap; // todo: remove one gap
+                        self.h += size.h + self.gap;
                     },
                 }
+                self.w = @max(self.w, size.w);
             }
 
             // remove the trailing gap if we had any children
@@ -211,12 +231,9 @@ pub fn inscribe(self: *Self, rs: *Runestone, x: usize, y: usize) !void {
                 .factor => @divFloor(available_w, total_factor),
             };
 
-            // stack width is re-calculated on every draw
-            // (inscriptions may change size, hide etc)
-            self.w = 0;
-
             for (self.children) |child| {
                 try child.inscribe(rs, currx, curry);
+                const size = child.measure();
 
                 switch (self.layout) {
                     .factor => {
@@ -227,25 +244,34 @@ pub fn inscribe(self: *Self, rs: *Runestone, x: usize, y: usize) !void {
                         // not in the initial
                         // when using .factor the width is determined by the stack,
                         // so we need to update the child's geometry
-                        const size = child.measure();
                         child.setGeometry(sx, curry, unit_w * child.factor, size.h);
                         self.w += currx;
                     },
                     .sequential => {
-                        const size = child.measure();
                         currx += size.w + self.gap;
                         self.w += size.w + self.gap;
                     },
                 }
+
+                self.h = @max(self.h, size.h);
             }
 
             // remove the trailing gap if we had any children
             if (self.children.len > 0) self.w -= self.gap;
         },
     }
+
+    // adjust width
+    self.h += 2 * @as(usize, @intFromBool(self.border));
+    self.w += 2 * @as(usize, @intFromBool(self.border));
+
+    if (self.border) try ui.drawWithBorder(self, rs, null);
 }
 
+/// Forward input events to children in order until handled
 pub fn handleInput(self: *Self, event: mibu.events.Event) !bool {
+    if (self.hidden) return false;
+
     for (self.children) |child| {
         const handled = try child.handleInput(event);
         if (handled) return true;

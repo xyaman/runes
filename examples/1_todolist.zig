@@ -26,7 +26,7 @@ const Todo = struct {
     }
 
     pub fn inscribe(self: *Todo, index: usize, selected: bool, artisan: *runes.inscriptions.Artisan) !usize {
-        const prefix = if (self.completed) "(x)" else "( )";
+        const prefix = if (self.completed) "(•)" else "( )";
         const style: runes.Rune.Style = .{
             .fg = if (selected) .{ .xterm = .red } else .default,
             .attr = .{ .bold = selected },
@@ -60,8 +60,8 @@ const TodoList = struct {
         self.todos = try std.ArrayListUnmanaged(Todo).initCapacity(allocator, 10);
 
         // initialize the list view
-        self.list = List(Todo).init(self.todos.items, 10);
-        self.input = Input.init(self.allocator, false);
+        self.list = List(Todo).init(self.todos.items, .{});
+        self.input = Input.init(self.allocator, .{});
         self.input.placeholder = "Press i to insert";
 
         // initialize children buffer (no heap)
@@ -163,7 +163,7 @@ pub fn main() !void {
         try todolist.insert(t);
     }
 
-    var help_text = Text.init("  i: add todo ・ enter/space: toggle todo・↑/k: up ・↓/j: down", .{ .fg = .{ .xterm = .grey_50 } }, false);
+    var help_text = Text.init("  i: add todo ・ enter/space: toggle todo・↑/k: up ・↓/j: down", .{ .style = .{ .fg = .{ .xterm = .grey_50 } } });
     var root = Stack.init(.{
         .children = &.{
             .init(&todolist, .{}),

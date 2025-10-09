@@ -1,4 +1,5 @@
-//! Provides a runes Inscription for browsing a general purpose list of items.
+//! Provides a text input component for browsing and editing a general-purpose list of items.
+//! Handles UTF-8 input, cursor movement, simple word-wise navigation, and deletion.
 
 const std = @import("std");
 const mibu = @import("mibu");
@@ -24,28 +25,43 @@ x: usize = 0, // this value is set in `inscribe`
 y: usize = 0, // this value is set in `inscribe`
 
 // common ui
-focused: bool = false,
 hidden: bool = false,
+focused: bool = false,
+border: bool,
+margin: ui.Margin,
 
 placeholder: []const u8 = "<input>",
 
-style: Style = .{},
-border: bool,
+style: InputStyle,
 
-pub const Style = struct {
+pub const InputStyle = struct {
     text: Rune.Style = .{},
     placeholder: Rune.Style = .{ .fg = .{ .xterm = .grey_50 } },
 };
 
-/// Create a new List
-pub fn init(allocator: std.mem.Allocator, border: bool) Self {
-    return Self{ .allocator = allocator, .border = border };
+pub const InitOptions = struct {
+    border: bool = false,
+    margin: ui.Margin = .{},
+    style: InputStyle = .{},
+};
+
+/// Initialize a new Input component
+/// Don't forget to call `Input.deinit()`
+pub fn init(allocator: std.mem.Allocator, options: InitOptions) Self {
+    return Self{
+        .allocator = allocator,
+        .style = options.style,
+        .border = options.border,
+        .margin = options.margin,
+    };
 }
 
+/// Deallocate internal buffer
 pub fn deinit(self: *Self) void {
     self.buffer.deinit(self.allocator);
 }
 
+/// Set the text content (removes current content)
 pub fn setText(self: *Self, allocator: std.mem.Allocator, s: []const u8) !void {
     self.buffer.deinit(self.allocator);
     self.buffer = try std.ArrayListUnmanaged(u8).initCapacity(allocator, s.len);
@@ -53,17 +69,19 @@ pub fn setText(self: *Self, allocator: std.mem.Allocator, s: []const u8) !void {
     self.cursor = self.buffer.items.len;
 }
 
+/// Clear the text but retain buffer capacity
 pub fn clearRetainingCapacity(self: *Self) void {
     self.buffer.clearRetainingCapacity();
     self.cursor = 0;
 }
 
+/// Clear the text and free buffer memory
 pub fn clearAndFree(self: *Self) void {
     self.buffer.clearAndFree(self.allocator);
     self.cursor = 0;
 }
 
-/// Draw the self to the Runestone at (x, y)
+/// Draw the input component to a `Runestone` at (x, y)
 pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
     self.x = x;
     self.y = y;
@@ -116,6 +134,7 @@ pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
     if (self.border) try ui.drawWithBorder(self, stone, null);
 }
 
+/// Handle user input events (UTF-8 characters, navigation, deletion)
 pub fn handleInput(self: *Self, event: mibu.events.Event) !bool {
     if (self.hidden) return false;
 

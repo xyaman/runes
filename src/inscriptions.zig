@@ -16,9 +16,11 @@
 //! - `h: usize` – Height
 //!
 //! ## UI-related
-//! - `focused: bool` – Whether the widget currently has focus. Behaviour might change
+//! - `focused: bool` – Whether the widget currently has focus. Widget behaviour
+//!    may change (ex. Input: show/hide cursor when focused).
 //! - `hidden: bool` – If `true`, the `inscribe` function must be skipped and
 //!   `self.w` and `self.h` should be set to 0.
+//! - `border: bool` – Whether the widget currently has border.
 //!
 //! ## Interface Methods
 //! Every inscription **should** implement the following methods:
@@ -33,9 +35,8 @@
 //! through vtables without depending on compile-time generics.
 //!
 //! When you need to expose or draw directly to the canvas (`Runestone`),
-//! you should use the `Artisan` helper.
-//!
-//! Check out `List(T)` and `T` for examples of how to implement inscriptions.
+//! you should use the `Artisan` helper. Check out `List(T)` and `T` for
+//! examples of how to implement and use `Artisan`.
 
 pub const Artisan = @import("inscriptions/Artisan.zig");
 pub const Text = @import("inscriptions/Text.zig");
