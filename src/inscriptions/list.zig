@@ -34,6 +34,7 @@ pub fn List(comptime T: type) type {
         w: usize = 0, // this value is set in `inscribe`
         x: usize = 0, // this value is set in `inscribe`
         y: usize = 0, // this value is set in `inscribe`
+        z_index: usize = 0,
         max_h: usize,
 
         // common ui
@@ -97,7 +98,7 @@ pub fn List(comptime T: type) type {
             if (self.title) |title| {
                 // avoid adding title if the title is in the border
                 if (!self.border) {
-                    try stone.addText(base_x, base_y, title, .{});
+                    try stone.addText(base_x, base_y, title, self.z_index, .{});
                     self.w = @max(title.len, self.w);
                     offset += 1;
                 }
@@ -110,7 +111,7 @@ pub fn List(comptime T: type) type {
                 var item = self.items[idx];
                 const len = blk: {
                     if (@hasDecl(T, "inscribe")) {
-                        var artisan = Artisan{ .x = base_x, .y = base_y + row + offset, .stone = stone };
+                        var artisan = Artisan{ .x = base_x, .y = base_y + row + offset, .z_index = self.z_index, .stone = stone };
                         break :blk try item.inscribe(idx, self.selected == idx, &artisan);
                     } else if (@hasField(T, "label")) {
                         // Default, simple implementation
@@ -121,7 +122,7 @@ pub fn List(comptime T: type) type {
                             .fg = if (idx == self.selected) .{ .xterm = .red } else .default,
                         };
 
-                        break :blk try stone.addTextFmt(base_x, base_y + row + offset, "{s} {d}. {s}", .{ prefix, idx + 1, item.label }, style);
+                        break :blk try stone.addTextFmt(base_x, base_y + row + offset, "{s} {d}. {s}", .{ prefix, idx + 1, item.label }, self.z_index, style);
                     } else {
                         // already compile-error-checked above
                         unreachable;

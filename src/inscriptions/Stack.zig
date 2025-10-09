@@ -22,7 +22,8 @@ h: usize = 0, // this value is set in `inscribe`
 w: usize = 0, // this value is set in `inscribe`
 x: usize = 0, // this value is set in `inscribe`
 y: usize = 0, // this value is set in `inscribe`
-//
+z_index: usize = 0,
+
 // common ui
 hidden: bool = false,
 focused: bool = false,

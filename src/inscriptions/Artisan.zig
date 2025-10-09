@@ -27,11 +27,14 @@ x_offset: usize = 0,
 /// Internal vertical cursor offset. Do not modify directly.
 y_offset: usize = 0,
 
+/// Parent z-index
+z_index: usize,
+
 /// Writes formatted text at a fixed position and returns the number of characters written.
 /// Designed for repeated horizontal writing; each call appends text to the right of the previous one.
 /// Note: Only horizontal appending is supported; vertical positioning must be handled externally.
 pub fn inscribe(self: *Self, comptime fmt: []const u8, args: anytype, style: Rune.Style) !usize {
-    const len = try self.stone.addTextFmt(self.x, self.y, fmt, args, style);
+    const len = try self.stone.addTextFmt(self.x, self.y, fmt, args, self.z_index, style);
     self.x_offset += len;
     return len;
 }

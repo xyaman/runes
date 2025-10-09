@@ -15,6 +15,8 @@
 //! - `w: usize` – Width
 //! - `h: usize` – Height
 //!
+//! - `z_index: usize` – z-index, bigger number means more layer
+//!
 //! ## UI-related
 //! - `focused: bool` – Whether the widget currently has focus. Widget behaviour
 //!    may change (ex. Input: show/hide cursor when focused).
@@ -71,7 +73,7 @@ test "inscriptions are well-formed" {
     inline for (Inscriptions) |Inscription| {
         const name = @typeName(Inscription);
 
-        inline for (.{ "x", "y", "w", "h", "focused", "hidden", "border", "margin" }) |field| {
+        inline for (.{ "x", "y", "w", "h", "z_index", "focused", "hidden", "border", "margin" }) |field| {
             if (!@hasField(Inscription, field)) {
                 std.debug.print("Error: {s} missing field '{s}'\n", .{ name, field });
                 failed = true;

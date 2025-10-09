@@ -133,33 +133,34 @@ pub fn drawWithBorder(inscription: anytype, stone: *Runestone, title: ?[]const u
     const h = inscription.h;
     const x = inscription.x + inscription.margin.x;
     const y = inscription.y + inscription.margin.y;
+    const z_index = inscription.z_index;
 
     // Draw top
     if (title) |t| {
-        try stone.addText(x + 1, y, t, .{});
+        try stone.addText(x + 1, y, t, z_index, .{});
         for (t.len + 2..w) |i| {
-            try stone.addText(x + i, y, "─", .{});
+            try stone.addText(x + i, y, "─", z_index, .{});
         }
     } else {
         for (0..w) |i| {
-            try stone.addText(x + i, y, "─", .{});
+            try stone.addText(x + i, y, "─", z_index, .{});
         }
     }
 
     // Draw bottom border
     for (0..w) |i| {
-        try stone.addText(x + i, y + h - 1, "─", .{});
+        try stone.addText(x + i, y + h - 1, "─", z_index, .{});
     }
 
     // Draw left and right borders
     for (1..h - 1) |i| {
-        try stone.addText(x, y + i, "│", .{});
-        try stone.addText(x + w - 1, y + i, "│", .{});
+        try stone.addText(x, y + i, "│", z_index, .{});
+        try stone.addText(x + w - 1, y + i, "│", z_index, .{});
     }
 
     // Draw corners
-    try stone.addText(x, y, "┌", .{});
-    try stone.addText(x + w - 1, y, "┐", .{});
-    try stone.addText(x, y + h - 1, "└", .{});
-    try stone.addText(x + w - 1, y + h - 1, "┘", .{});
+    try stone.addText(x, y, "┌", z_index, .{});
+    try stone.addText(x + w - 1, y, "┐", z_index, .{});
+    try stone.addText(x, y + h - 1, "└", z_index, .{});
+    try stone.addText(x + w - 1, y + h - 1, "┘", z_index, .{});
 }

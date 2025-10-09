@@ -17,6 +17,7 @@ h: usize = 1,
 w: usize = 0, // this value is set in `inscribe`
 x: usize = 0, // this value is set in `inscribe`
 y: usize = 0, // this value is set in `inscribe`
+z_index: usize = 0,
 
 // common ui
 hidden: bool = false,
@@ -61,7 +62,7 @@ pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
     const render_y = y + @intFromBool(self.border) + self.margin.y;
 
     // TODO: Add wrap support for long text
-    try stone.addText(render_x, render_y, self.text, self.style);
+    try stone.addText(render_x, render_y, self.text, self.z_index, self.style);
 
     if (self.border) try ui.drawWithBorder(self, stone, null);
 }

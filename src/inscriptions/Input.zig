@@ -23,6 +23,7 @@ h: usize = 1,
 w: usize = 0, // this value is set in `inscribe`
 x: usize = 0, // this value is set in `inscribe`
 y: usize = 0, // this value is set in `inscribe`
+z_index: usize = 0,
 
 // common ui
 hidden: bool = false,
@@ -104,29 +105,29 @@ pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
     // TODO: Add wrap support
     if (self.buffer.items.len == 0) {
         if (self.focused) {
-            try stone.addText(render_x, render_y, " ", cursor_style);
+            try stone.addText(render_x, render_y, " ", self.z_index, cursor_style);
         } else {
-            try stone.addText(render_x, render_y, self.placeholder, self.style.placeholder);
+            try stone.addText(render_x, render_y, self.placeholder, self.z_index, self.style.placeholder);
         }
     } else {
         // If cursor is at the end, just render normally plus the cursor
         if (self.cursor == self.buffer.items.len) {
-            try stone.addText(render_x, render_y, self.buffer.items, self.style.text);
-            try stone.addText(render_x + self.buffer.items.len, render_y, " ", cursor_style);
+            try stone.addText(render_x, render_y, self.buffer.items, self.z_index, self.style.text);
+            try stone.addText(render_x + self.buffer.items.len, render_y, " ", self.z_index, cursor_style);
         } else {
             // Render before cursor
             if (self.cursor > 0) {
-                try stone.addText(render_x, render_y, self.buffer.items[0..self.cursor], self.style.text);
+                try stone.addText(render_x, render_y, self.buffer.items[0..self.cursor], self.z_index, self.style.text);
                 render_x += self.cursor;
             }
 
             // Render cursor itself
-            try stone.addText(render_x, render_y, self.buffer.items[self.cursor .. self.cursor + 1], cursor_style);
+            try stone.addText(render_x, render_y, self.buffer.items[self.cursor .. self.cursor + 1], self.z_index, cursor_style);
             render_x += 1;
 
             // Render after cursor
             if (self.cursor + 1 < self.buffer.items.len) {
-                try stone.addText(render_x, render_y, self.buffer.items[self.cursor + 1 ..], self.style.text);
+                try stone.addText(render_x, render_y, self.buffer.items[self.cursor + 1 ..], self.z_index, self.style.text);
             }
         }
     }

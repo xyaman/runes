@@ -41,6 +41,7 @@ utf8_buf: [4]u8 = [_]u8{ ' ', 0, 0, 0 },
 utf8_len: u3 = 1,
 
 style: Style = .{},
+z_index: usize = 0,
 
 /// Sets the cell's character from a UTF-8 codepoint slice.
 pub fn setCh(self: *Self, codepoint: []const u8) void {

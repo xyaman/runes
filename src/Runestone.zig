@@ -53,7 +53,7 @@ pub fn deinit(self: *Self) void {
 
 /// Adds text to the runestone at (sx, sy).
 /// Currently stops at edges (no wrapping).
-pub fn addText(self: *Self, sx: usize, sy: usize, text: []const u8, style: Rune.Style) !void {
+pub fn addText(self: *Self, sx: usize, sy: usize, text: []const u8, z_index: usize, style: Rune.Style) !void {
     const buf = self.buffers[self.curr_buffer];
     var utf8 = (try std.unicode.Utf8View.init(text)).iterator();
     var x: usize = sx;
@@ -71,6 +71,9 @@ pub fn addText(self: *Self, sx: usize, sy: usize, text: []const u8, style: Rune.
         if (is_wide and x + 1 >= self.term_w) break;
 
         var rune = &buf[sy * self.term_w + x];
+
+        // return if current rune z-index is bigger
+        if (rune.z_index > z_index) continue;
 
         // Overwriting continuation cell: clear the wide rune before it
         // TODO: is `*` neccessary
@@ -112,6 +115,7 @@ pub fn addTextFmt(
     sy: usize,
     comptime fmt: []const u8,
     args: anytype,
+    z_index: usize,
     style: Rune.Style,
 ) !usize {
     // local stack buffer: temporary text storage for this one call
@@ -119,7 +123,7 @@ pub fn addTextFmt(
     const text = try std.fmt.bufPrint(&buf, fmt, args);
 
     // Safe because addText copies into rune cells
-    try self.addText(sx, sy, text, style);
+    try self.addText(sx, sy, text, z_index, style);
     return text.len;
 }
 
