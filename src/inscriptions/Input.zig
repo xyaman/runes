@@ -243,7 +243,7 @@ test "handleInput adds a unicode character" {
     const Input = Self;
 
     const gpa = std.testing.allocator;
-    var list = Input.init(gpa, false);
+    var list = Input.init(gpa, .{});
 
     defer list.deinit();
 
@@ -267,7 +267,7 @@ test "handleInput backspace removes a character" {
     const Input = Self;
 
     const gpa = std.testing.allocator;
-    var list = Input.init(gpa, false);
+    var list = Input.init(gpa, .{});
     defer list.deinit();
 
     try list.setText(gpa, "a日b"); // initial string

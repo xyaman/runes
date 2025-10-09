@@ -21,6 +21,7 @@
 //! - `hidden: bool` – If `true`, the `inscribe` function must be skipped and
 //!   `self.w` and `self.h` should be set to 0.
 //! - `border: bool` – Whether the widget currently has border.
+//! - `margin: ui.Margin` – Margin
 //!
 //! ## Interface Methods
 //! Every inscription **should** implement the following methods:
@@ -38,15 +39,52 @@
 //! you should use the `Artisan` helper. Check out `List(T)` and `T` for
 //! examples of how to implement and use `Artisan`.
 
+pub const ui = @import("inscriptions/ui.zig");
+
+// helpers
 pub const Artisan = @import("inscriptions/Artisan.zig");
+
+// widgets
 pub const Text = @import("inscriptions/Text.zig");
 pub const Input = @import("inscriptions/Input.zig");
-
 pub const List = @import("inscriptions/list.zig").List;
 pub const Stack = @import("inscriptions/Stack.zig");
-pub const ui = @import("inscriptions/ui.zig");
 
 test {
     const std = @import("std");
     std.testing.refAllDecls(@This());
+}
+
+test "inscriptions are well-formed" {
+    const std = @import("std");
+
+    var failed = false;
+
+    const Inscriptions = .{
+        // helper: @import("inscriptions/Artisan.zig"),
+        @import("inscriptions/Text.zig"),
+        @import("inscriptions/Input.zig"),
+        // @import("inscriptions/list.zig").List,
+        @import("inscriptions/Stack.zig"),
+    };
+
+    inline for (Inscriptions) |Inscription| {
+        const name = @typeName(Inscription);
+
+        inline for (.{ "x", "y", "w", "h", "focused", "hidden", "border", "margin" }) |field| {
+            if (!@hasField(Inscription, field)) {
+                std.debug.print("Error: {s} missing field '{s}'\n", .{ name, field });
+                failed = true;
+            }
+        }
+
+        inline for (.{ "inscribe", "handleInput" }) |decl| {
+            if (!@hasDecl(Inscription, decl)) {
+                std.debug.print("Error: {s} missing method '{s}'\n", .{ name, decl });
+                failed = true;
+            }
+        }
+    }
+
+    if (failed) return error.Missing;
 }
