@@ -133,7 +133,6 @@ pub fn engrave(self: *Self, out: *std.Io.Writer) !void {
     const buf = self.buffers[self.curr_buffer];
     const prev = self.buffers[1 - self.curr_buffer];
 
-    try mibu.cursor.hide(out);
     try mibu.color.resetAll(out);
     var curr_render_style: Rune.Style = .{};
 
@@ -147,15 +146,13 @@ pub fn engrave(self: *Self, out: *std.Io.Writer) !void {
     }
 
     while (y < self.term_h and y < self.render_h) : (y += 1) {
-        try mibu.cursor.goTo(out, 1, self.y_offset + y + 1);
         var x: usize = 0;
         while (x < self.term_w) : (x += 1) {
             const i = y * self.term_w + x;
 
-            // print/replace the rune if:
-            // - The char/bytes changed
-            // - The style changed
-            if (!std.mem.eql(u8, buf[i].bytes(), prev[i].bytes()) or !buf[i].style.equals(prev[i].style)) {
+            // print/replace the rune if anything changed
+            if (!std.meta.eql(buf[i], prev[i])) {
+                try mibu.cursor.goTo(out, x + 1, self.y_offset + y + 1);
 
                 // same buffer one rune before
                 if (!curr_render_style.equals(buf[i].style)) {
@@ -164,17 +161,17 @@ pub fn engrave(self: *Self, out: *std.Io.Writer) !void {
                 }
 
                 try out.print("{s}", .{buf[i].bytes()});
-            } else {
-                try mibu.cursor.goTo(out, x + 2, self.y_offset + y + 1);
             }
         }
     }
 
+    // always set the cursor at the bottom (when the programs exists is below
+    // the rendered content => feels more natural)
+    try mibu.cursor.goTo(out, 1, self.y_offset + y + 1);
+
     // Swap buffers and clear new active buffer
     self.curr_buffer = 1 - self.curr_buffer;
     @memset(self.buffers[self.curr_buffer], .{});
-
-    try mibu.cursor.hide(out);
 }
 
 // todo: only outputs the style if it changes based on the previous rune
