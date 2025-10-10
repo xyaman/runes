@@ -94,7 +94,7 @@ pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
     }
 
     self.w = self.buffer.items.len + 2 * @as(usize, @intFromBool(self.border));
-    self.h = 1 + 2 * @as(usize, @intFromBool(self.border));
+    // self.h = 1 + 2 * @as(usize, @intFromBool(self.border));
 
     var render_x = x + @intFromBool(self.border);
     const render_y = y + @intFromBool(self.border);

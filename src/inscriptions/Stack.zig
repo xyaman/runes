@@ -18,10 +18,7 @@ const Rune = @import("../Rune.zig");
 const Self = @This();
 
 // geometry
-h: usize = 0, // this value is set in `inscribe`
-w: usize = 0, // this value is set in `inscribe`
-x: usize = 0, // this value is set in `inscribe`
-y: usize = 0, // this value is set in `inscribe`
+rect: ui.Rect = .{ .h = 0, .w = 0, .x = 0, .y = 0 },
 z_index: usize = 0,
 
 // common ui
@@ -51,12 +48,12 @@ pub const Child = struct {
     pub const VTable = struct {
         inscribe: *const fn (*anyopaque, *Runestone, usize, usize) anyerror!void,
         handleInput: *const fn (*anyopaque, mibu.events.Event) anyerror!bool,
-        measure: *const fn (*anyopaque) ui.Size,
+        rect: *const fn (*anyopaque) ui.Rect,
         setGeometry: *const fn (*anyopaque, usize, usize, usize, usize) void,
     };
 
-    pub inline fn measure(self: Child) ui.Size {
-        return self.vtable.measure(self.ptr);
+    pub inline fn rect(self: Child) ui.Rect {
+        return self.vtable.rect(self.ptr);
     }
 
     pub inline fn inscribe(self: Child, rs: *Runestone, x: usize, y: usize) anyerror!void {
@@ -90,39 +87,42 @@ pub const Child = struct {
                 return try self.handleInput(event);
             }
 
-            pub fn measure(ptr: *anyopaque) ui.Size {
+            pub fn rect(ptr: *anyopaque) ui.Rect {
                 const self: Ptr = @ptrCast(@alignCast(ptr));
 
                 // Check that all required fields exist
-                if (!@hasField(@TypeOf(self.*), "x") or !@hasField(@TypeOf(self.*), "y") or !@hasField(@TypeOf(self.*), "w") or !@hasField(@TypeOf(self.*), "h")) {
-                    @compileError(@typeName(@TypeOf(self.*)) ++ " must have fields: x, y, w, h");
+                // if (!@hasField(@TypeOf(self.*), "x") or !@hasField(@TypeOf(self.*), "y") or !@hasField(@TypeOf(self.*), "w") or !@hasField(@TypeOf(self.*), "h")) {
+                //     @compileError(@typeName(@TypeOf(self.*)) ++ " must have fields: x, y, w, h");
+                // }
+                //
+                if (!@hasField(@TypeOf(self.*), "rect")) {
+                    @compileError(@typeName(@TypeOf(self.*)) ++ " must have field: rect");
                 }
 
-                return .{
-                    .w = @field(self, "w"),
-                    .h = @field(self, "h"),
-                };
+                return @field(self, "rect");
             }
 
             pub fn setGeometry(ptr: *anyopaque, x: usize, y: usize, w: usize, h: usize) void {
                 const self: Ptr = @ptrCast(@alignCast(ptr));
 
                 // Check that all required fields exist
-                if (!@hasField(@TypeOf(self.*), "x") or !@hasField(@TypeOf(self.*), "y") or !@hasField(@TypeOf(self.*), "w") or !@hasField(@TypeOf(self.*), "h")) {
-                    @compileError(@typeName(@TypeOf(self.*)) ++ " must have fields: x, y, w, h");
+                if (!@hasField(@TypeOf(self.*), "rect")) {
+                    @compileError(@typeName(@TypeOf(self.*)) ++ " must have field: rect");
                 }
 
-                @field(self.*, "x") = x;
-                @field(self.*, "y") = y;
-                @field(self.*, "w") = w;
-                @field(self.*, "h") = h;
+                @field(self.*, "rect") = ui.Rect{
+                    .x = x,
+                    .y = y,
+                    .w = w,
+                    .h = h,
+                };
             }
         };
 
         return .{
             .ptr = inscription,
             .vtable = &.{
-                .measure = impl.measure,
+                .rect = impl.rect,
                 .inscribe = impl.inscribe,
                 .handleInput = impl.handleInput,
                 .setGeometry = impl.setGeometry,
@@ -165,106 +165,62 @@ pub fn init(options: InitOptions) Self {
 
 /// Draw the stack and its children on the Runestone
 pub fn inscribe(self: *Self, rs: *Runestone, x: usize, y: usize) !void {
-    var curry: usize = y + self.margin.y + @intFromBool(self.border);
-    var currx: usize = x + self.margin.x + @intFromBool(self.border);
-
     if (self.hidden) {
-        self.w = 0;
-        self.h = 0;
-        for (self.children) |child| {
-            child.setGeometry(0, 0, 0, 0);
-        }
-
+        self.rect.w = 0;
+        self.rect.h = 0;
+        for (self.children) |child| child.setGeometry(0, 0, 0, 0);
         return;
     }
 
-    // total sum of factors
+    var curr_x: usize = x + self.margin.x + @intFromBool(self.border);
+    var curr_y: usize = y + self.margin.y + @intFromBool(self.border);
+
+    const available_w = rs.term_w - x - self.margin.x - @intFromBool(self.border);
+    const available_h = rs.term_h - y - self.margin.y - @intFromBool(self.border);
+
+    // total factor sum for factor layout
+
     var total_factor: usize = 0;
-    for (self.children) |child| {
-        total_factor += child.factor;
-    }
+    for (self.children) |child| total_factor += child.factor;
 
-    // stack dimensions are re-calculated on every draw
-    self.h = 0;
-    self.w = 0;
-
-    // nothing to draw
-    if (total_factor == 0) return;
+    self.rect.w = 0;
+    self.rect.h = 0;
 
     switch (self.direction) {
         .vertical => {
-            const available_h = rs.term_h - y - rs.y_offset - self.margin.y;
-            const unit_h = switch (self.layout) {
-                .sequential => 1,
-                .factor => @divFloor(available_h, total_factor),
-            };
-
             for (self.children) |child| {
-                try child.inscribe(rs, currx, curry);
-                const size = child.measure();
-                switch (self.layout) {
-                    .factor => {
-                        const sy = curry;
-                        curry += unit_h * child.factor;
+                // stacks start with w = h = 0, causing the first render to be
+                // bad
+                const child_h = switch (self.layout) {
+                    .sequential => child.rect().h,
+                    .factor => (available_h * child.factor) / total_factor,
+                };
 
-                        // TODO Current bug: the width is setted in the next render
-                        // not in the initial
-                        // when using .factor the height is determined by the stack,
-                        // so we need to update the child's geometry
-                        child.setGeometry(currx, sy, size.w, unit_h * child.factor);
-                        self.h += curry;
-                    },
-                    .sequential => {
-                        curry += size.h + self.gap;
-                        self.h += size.h + self.gap;
-                    },
-                }
-                self.w = @max(self.w, size.w);
+                child.setGeometry(curr_x, curr_y, available_w, child_h);
+                try child.inscribe(rs, curr_x, curr_y);
+                curr_y += child_h + self.gap;
+                self.rect.w = @max(self.rect.w, available_w);
             }
-
-            // remove the trailing gap if we had any children
-            if (self.children.len > 0) self.h -= self.gap;
+            if (self.children.len > 0) self.rect.h = curr_y - y - self.gap;
         },
         .horizontal => {
-            const available_w = rs.term_w - x;
-            const unit_w = switch (self.layout) {
-                .sequential => 1,
-                .factor => @divFloor(available_w, total_factor),
-            };
-
             for (self.children) |child| {
-                try child.inscribe(rs, currx, curry);
-                const size = child.measure();
-
-                switch (self.layout) {
-                    .factor => {
-                        const sx = currx;
-                        currx += unit_w * child.factor;
-
-                        // TODO Current bug: the width is setted in the next render
-                        // not in the initial
-                        // when using .factor the width is determined by the stack,
-                        // so we need to update the child's geometry
-                        child.setGeometry(sx, curry, unit_w * child.factor, size.h);
-                        self.w += currx;
-                    },
-                    .sequential => {
-                        currx += size.w + self.gap;
-                        self.w += size.w + self.gap;
-                    },
-                }
-
-                self.h = @max(self.h, size.h);
+                const child_w = switch (self.layout) {
+                    .sequential => child.rect().w,
+                    .factor => (available_w * child.factor) / total_factor,
+                };
+                child.setGeometry(curr_x, curr_y, child_w, available_h);
+                try child.inscribe(rs, curr_x, curr_y);
+                curr_x += child_w + self.gap;
+                self.rect.h = @max(self.rect.h, available_h);
             }
-
-            // remove the trailing gap if we had any children
-            if (self.children.len > 0) self.w -= self.gap;
+            if (self.children.len > 0) self.rect.w = curr_x - x - self.gap;
         },
     }
 
-    // adjust width
-    self.h += 2 * @as(usize, @intFromBool(self.border));
-    self.w += 2 * @as(usize, @intFromBool(self.border));
+    // account for borders
+    self.rect.w += 2 * @as(usize, @intFromBool(self.border));
+    self.rect.h += 2 * @as(usize, @intFromBool(self.border));
 
     if (self.border) try ui.drawWithBorder(self, rs, null);
 }

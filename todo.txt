@@ -1,0 +1,8 @@
+Prioridad en rewrite
+- [x] Arreglar runestone (wide chars hay un problema) => se arreglo arreglando como muevo el cursor
+- [ ] Decidir policy para los sizes
+    .sequential:
+        - w == 0: use all available width (generally term_h or term_w)
+        - w > 0: use w if possible (eq to max_width)
+
+- [ ] Arreglar mouse

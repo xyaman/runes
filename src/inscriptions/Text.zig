@@ -13,10 +13,8 @@ const Rune = @import("../Rune.zig");
 const Self = @This();
 
 // geometry
-h: usize = 1,
-w: usize = 0, // this value is set in `inscribe`
-x: usize = 0, // this value is set in `inscribe`
-y: usize = 0, // this value is set in `inscribe`
+rect: ui.Rect = .{ .h = 1, .w = 0, .x = 0, .y = 0 },
+
 z_index: usize = 0,
 
 // common ui
@@ -46,17 +44,17 @@ pub fn init(text: []const u8, options: InitOptions) Self {
 
 /// Draw the self to the Runestone at (x, y)
 pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
-    self.x = x;
-    self.y = y;
+    self.rect.x = x;
+    self.rect.y = y;
 
     if (self.hidden) {
-        self.w = 0;
-        self.h = 0;
+        self.rect.w = 0;
+        self.rect.h = 0;
         return;
     }
 
-    self.w = self.text.len + 2 * @as(usize, @intFromBool(self.border)) + 2 * self.margin.x;
-    self.h = 1 + 2 * @as(usize, @intFromBool(self.border)) + 2 * self.margin.y;
+    self.rect.w = self.text.len + 2 * @as(usize, @intFromBool(self.border)) + 2 * self.margin.x;
+    self.rect.h = 1 + 2 * @as(usize, @intFromBool(self.border)) + 2 * self.margin.y;
 
     const render_x = x + @intFromBool(self.border) + self.margin.x;
     const render_y = y + @intFromBool(self.border) + self.margin.y;

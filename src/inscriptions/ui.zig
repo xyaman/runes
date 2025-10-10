@@ -1,6 +1,9 @@
+const std = @import("std");
 const Runestone = @import("../Runestone.zig");
 
-pub const Size = struct {
+pub const Rect = struct {
+    x: usize,
+    y: usize,
     w: usize,
     h: usize,
 };
@@ -129,10 +132,10 @@ pub const BorderCharacters = struct {
 
 pub fn drawWithBorder(inscription: anytype, stone: *Runestone, title: ?[]const u8) !void {
     // Measure inner component
-    const w = inscription.w;
-    const h = inscription.h;
-    const x = inscription.x + inscription.margin.x;
-    const y = inscription.y + inscription.margin.y;
+    const w = inscription.rect.w;
+    const h = inscription.rect.h;
+    const x = inscription.rect.x + inscription.margin.x;
+    const y = inscription.rect.y + inscription.margin.y;
     const z_index = inscription.z_index;
 
     // Draw top

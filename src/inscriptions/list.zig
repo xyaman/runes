@@ -30,10 +30,7 @@ pub fn List(comptime T: type) type {
         const Self = @This();
 
         // geometry
-        h: usize = 0,
-        w: usize = 0, // this value is set in `inscribe`
-        x: usize = 0, // this value is set in `inscribe`
-        y: usize = 0, // this value is set in `inscribe`
+        rect: ui.Rect = .{ .h = 0, .w = 0, .x = 0, .y = 0 },
         z_index: usize = 0,
         max_h: usize,
 
@@ -68,6 +65,8 @@ pub fn List(comptime T: type) type {
             };
         }
 
+        // pub fn measure(self: *Self) void {}
+
         /// Move selection up
         pub fn up(self: *Self) void {
             if (self.selected > 0) self.selected -= 1;
@@ -82,12 +81,12 @@ pub fn List(comptime T: type) type {
 
         /// Draw the self to the Runestone at (x, y)
         pub fn inscribe(self: *Self, stone: *Runestone, sx: usize, sy: usize) !void {
-            self.x = sx;
-            self.y = sy;
+            self.rect.x = sx;
+            self.rect.y = sy;
 
             if (self.hidden) {
-                self.w = 0;
-                self.h = 0;
+                self.rect.w = 0;
+                self.rect.h = 0;
                 return;
             }
 
@@ -99,7 +98,7 @@ pub fn List(comptime T: type) type {
                 // avoid adding title if the title is in the border
                 if (!self.border) {
                     try stone.addText(base_x, base_y, title, self.z_index, .{});
-                    self.w = @max(title.len, self.w);
+                    self.rect.w = @max(title.len, self.rect.w);
                     offset += 1;
                 }
             }
@@ -130,8 +129,9 @@ pub fn List(comptime T: type) type {
                 };
 
                 const border_w = 2 * @as(usize, @intFromBool(self.border));
-                self.w = @max(len + border_w + 2 * self.margin.x, self.w);
-                self.h = offset + row + 1 + border_w + 2 * self.margin.y;
+                self.rect.w = @max(len + border_w + 2 * self.margin.x, self.rect.w);
+                // self.rect.h = offset + row + 1 + border_w + 2 * self.margin.y;
+                self.rect.h = self.max_h;
             }
 
             // render border
@@ -154,21 +154,21 @@ pub fn List(comptime T: type) type {
                 },
                 .mouse => |m| {
                     if (m.button != .left) return false;
-                    if (!(m.x >= self.x and m.x <= self.x + self.w and m.y >= self.y and m.y <= self.y + self.h)) return false;
+                    if (!(m.x >= self.rect.x and m.x <= self.rect.x + self.rect.w and m.y >= self.rect.y and m.y <= self.rect.y + self.rect.h)) return false;
 
                     // find the selected item
-                    for (0..self.h) |row| {
+                    for (0..self.rect.h) |row| {
                         const idx = self.first_visible + row;
                         if (idx >= self.items.len) break;
 
                         // + 1: 0-index array
                         // + 1: rows starts at 1 (mibu)
-                        if (m.y == self.y + row + 1) {
+                        if (m.y == self.rect.y + row + 1) {
                             self.selected = self.first_visible + row;
                             return true;
                         }
 
-                        // if (m.y == self.y + row + self.margin.y + @intFromBool(self.border)) {
+                        // if (m.y == self.rect.y + row + self.margin.y + @intFromBool(self.border)) {
                         //     self.selected = self.first_visible + row;
                         //     return true;
                         // }

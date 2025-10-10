@@ -28,10 +28,14 @@ pub fn main() !void {
         .{ .label = "Summon the Phoenix Rune" },
     };
 
-    var list = runes.inscriptions.List(Task).init(&tasks, 10);
+    var list = runes.inscriptions.List(Task).init(&tasks, .{ .border = true });
     list.title = "Simple List";
 
-    var help_text = runes.inscriptions.Text.init("  ↑/k up ・↓/j down", .{ .fg = .{ .xterm = .grey_50 } }, false);
+    var help_text = runes.inscriptions.Text.init("  ↑/k up ・↓/j down", .{
+        .style = .{ .fg = .{ .xterm = .grey_50 } },
+        .border = true,
+    });
+
     var root = runes.inscriptions.Stack.init(.{
         .children = &.{
             .init(&list, .{}),
