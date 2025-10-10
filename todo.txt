@@ -1,0 +1,16 @@
+Prioridad en rewrite
+- [x] Arreglar runestone (wide chars hay un problema) => se arreglo arreglando como muevo el cursor
+- [ ] Decidir policy para los sizes
+    .sequential:
+        - w == 0: use all available width (generally term_h or term_w)
+        - w > 0: use w if possible (eq to max_width)
+        - computed_w =>
+
+        - y == 0: use all available height (generally term_h or term_w)
+        - y > 0: use y if possible (eq to max_height)
+
+        - computed_rect => {}
+
+- [ ] Arreglar mouse
+
+* Es raro que inscribe reciba sx y sy, ya que es parte de la propiedad del objeto...

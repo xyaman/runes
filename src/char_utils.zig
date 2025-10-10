@@ -40,3 +40,18 @@ pub fn isWideCharacter(bytes: []const u8, len: u3) bool {
         (ch >= 0x2B820 and ch <= 0x2CEAF) or // CJK Extension E
         (ch >= 0x2CEB0 and ch <= 0x2EBEF); // CJK Extension F
 }
+
+/// Note: Doesn't verify if the given input is valid utf8
+pub fn utf8Len(text: []const u8) usize {
+    var i: usize = 0;
+    var count: usize = 0;
+
+    while (i < text.len) {
+        const byte = text[i];
+        const len: usize = if (byte < 0x80) 1 else if (byte < 0xE0) 2 else if (byte < 0xF0) 3 else 4;
+        i += len;
+        count += 1;
+    }
+
+    return count;
+}

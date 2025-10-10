@@ -1,11 +1,4 @@
-/// Copies geometry fields from one inscription/widget to another.
-/// Used for syncing x, y, w, h between composed inscriptions.
-pub fn copyGeometry(dest: anytype, source: anytype) void {
-    dest.x = source.x;
-    dest.y = source.y;
-    dest.w = source.w;
-    dest.h = source.h;
-}
+pub const chars = @import("char_utils.zig");
 
 /// FrameLimiter provides a simple way to skip engraving (drawing) if not
 /// enough time has passed since the last frame.

@@ -1,8 +1,20 @@
+const std = @import("std");
 const Runestone = @import("../Runestone.zig");
 
-pub const Size = struct {
-    w: usize,
-    h: usize,
+pub const Size = struct { w: usize, h: usize };
+
+pub const Constraints = struct {
+    min_w: usize = 0,
+    max_w: usize = std.math.maxInt(usize),
+    min_h: usize = 0,
+    max_h: usize = std.math.maxInt(usize),
+};
+
+pub const Rect = struct {
+    x: usize = 0,
+    y: usize = 0,
+    w: usize = 0,
+    h: usize = 0,
 };
 
 pub const Margin = struct {
@@ -129,11 +141,13 @@ pub const BorderCharacters = struct {
 
 pub fn drawWithBorder(inscription: anytype, stone: *Runestone, title: ?[]const u8) !void {
     // Measure inner component
-    const w = inscription.w;
-    const h = inscription.h;
-    const x = inscription.x + inscription.margin.x;
-    const y = inscription.y + inscription.margin.y;
+    const w = inscription.computed_rect.w;
+    const h = inscription.computed_rect.h;
+    const x = inscription.computed_rect.x + inscription.margin.x;
+    const y = inscription.computed_rect.y + inscription.margin.y;
     const z_index = inscription.z_index;
+
+    if (w < 3 or h < 3) return error.SizeTooSmall;
 
     // Draw top
     if (title) |t| {
@@ -155,12 +169,12 @@ pub fn drawWithBorder(inscription: anytype, stone: *Runestone, title: ?[]const u
     // Draw left and right borders
     for (1..h - 1) |i| {
         try stone.addText(x, y + i, "│", z_index, .{});
-        try stone.addText(x + w - 1, y + i, "│", z_index, .{});
+        try stone.addText(x + w, y + i, "│", z_index, .{});
     }
 
     // Draw corners
     try stone.addText(x, y, "┌", z_index, .{});
-    try stone.addText(x + w - 1, y, "┐", z_index, .{});
+    try stone.addText(x + w, y, "┐", z_index, .{});
     try stone.addText(x, y + h - 1, "└", z_index, .{});
-    try stone.addText(x + w - 1, y + h - 1, "┘", z_index, .{});
+    try stone.addText(x + w, y + h - 1, "┘", z_index, .{});
 }

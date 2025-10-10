@@ -19,10 +19,8 @@ buffer: std.ArrayListUnmanaged(u8) = .empty,
 cursor: usize = 0,
 
 // geometry
-h: usize = 1,
-w: usize = 0, // this value is set in `inscribe`
-x: usize = 0, // this value is set in `inscribe`
-y: usize = 0, // this value is set in `inscribe`
+rect: ui.Rect = .{ .h = 1 },
+computed_rect: ui.Rect = .{},
 z_index: usize = 0,
 
 // common ui
@@ -82,22 +80,43 @@ pub fn clearAndFree(self: *Self) void {
     self.cursor = 0;
 }
 
+pub fn layout(self: *Self, constraints: ui.Constraints) ui.Size {
+    const border_size: usize = @intCast(@intFromBool(self.border));
+
+    // 1. Calculate the component's ideal size based on its content.
+    const base_width = if (self.rect.w > 0) self.rect.w else char_utils.utf8Len(self.buffer.items);
+
+    const ideal_width = base_width + 2 * border_size;
+    const ideal_height = self.rect.h + 2 * border_size;
+
+    // 2. Clamp the ideal size to the constraints given by the parent.
+    self.computed_rect.w = std.math.clamp(ideal_width, constraints.min_w, constraints.max_w);
+    self.computed_rect.h = ideal_height;
+
+    // 3. Return the final computed size so the parent can position this component.
+    return .{
+        .w = self.computed_rect.w,
+        .h = self.computed_rect.h,
+    };
+}
+
 /// Draw the input component to a `Runestone` at (x, y)
 pub fn inscribe(self: *Self, stone: *Runestone, x: usize, y: usize) !void {
-    self.x = x;
-    self.y = y;
+    // if it is outside layout manager component like `Stack`, the computed rect
+    // will be the default, we will override that
+    if (std.meta.eql(self.rect, ui.Rect{})) {
+        self.computed_rect = self.rect;
+    }
+
+    self.computed_rect.x = x;
+    self.computed_rect.y = y;
 
     if (self.hidden) {
-        self.w = 0;
-        self.h = 0;
         return;
     }
 
-    self.w = self.buffer.items.len + 2 * @as(usize, @intFromBool(self.border));
-    self.h = 1 + 2 * @as(usize, @intFromBool(self.border));
-
-    var render_x = x + @intFromBool(self.border);
-    const render_y = y + @intFromBool(self.border);
+    var render_x = x + @intFromBool(self.border) + self.margin.x;
+    const render_y = y + @intFromBool(self.border) + self.margin.y;
 
     var cursor_style = self.style.text;
     cursor_style.bg = .{ .xterm = .white };

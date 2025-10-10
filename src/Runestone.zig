@@ -52,6 +52,7 @@ pub fn deinit(self: *Self) void {
 }
 
 /// Adds text to the runestone at (sx, sy).
+/// 0-index based
 /// Currently stops at edges (no wrapping).
 pub fn addText(self: *Self, sx: usize, sy: usize, text: []const u8, z_index: usize, style: Rune.Style) !void {
     const buf = self.buffers[self.curr_buffer];

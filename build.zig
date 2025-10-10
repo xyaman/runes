@@ -32,15 +32,20 @@ pub fn build(b: *std.Build) void {
             .root_module = b.createModule(.{
                 .root_source_file = b.path(b.fmt("examples/{s}.zig", .{name})),
                 .target = target,
-                .optimize = optimize,
+                .optimize = .Debug,
                 .imports = &.{
                     .{ .name = "runes", .module = lib },
                 },
             }),
+            .use_llvm = true,
         });
         const run_example = b.addRunArtifact(example_exe);
         const example_step = b.step(name, b.fmt("Run {s} example", .{name}));
         example_step.dependOn(&run_example.step);
+
+        // debugging
+        const example_exe_path = b.fmt("../examples/{s}", .{name});
+        example_step.dependOn(&b.addInstallArtifact(example_exe, .{ .dest_sub_path = example_exe_path }).step);
     }
 
     // -- documentation

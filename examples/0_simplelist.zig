@@ -28,16 +28,20 @@ pub fn main() !void {
         .{ .label = "Summon the Phoenix Rune" },
     };
 
-    var list = runes.inscriptions.List(Task).init(&tasks, 10);
+    var list = runes.inscriptions.List(Task).init(&tasks, .{});
     list.title = "Simple List";
 
-    var help_text = runes.inscriptions.Text.init("  ↑/k up ・↓/j down", .{ .fg = .{ .xterm = .grey_50 } }, false);
+    var help_text = runes.inscriptions.Text.init("↑/k up ・↓/j down", .{
+        .style = .{ .fg = .{ .xterm = .grey_50 } },
+        .margin = .{ .x = 2 },
+    });
+
+    // TODO: height is not being set!!
     var root = runes.inscriptions.Stack.init(.{
         .children = &.{
             .init(&list, .{}),
             .init(&help_text, .{}),
         },
-        .gap = 1,
     });
 
     var forge = try Forge.init(allocator, stdin_file, stdout, .{});
@@ -45,6 +49,9 @@ pub fn main() !void {
 
     while (true) {
         // -- engrave (draw) into stdout
+        const root_contraints = forge.constraints();
+        _ = root.layout(root_contraints);
+
         try forge.engrave(&root);
         try stdout.flush(); // don't forget to flush
 

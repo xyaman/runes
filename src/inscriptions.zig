@@ -40,6 +40,21 @@
 //! When you need to expose or draw directly to the canvas (`Runestone`),
 //! you should use the `Artisan` helper. Check out `List(T)` and `T` for
 //! examples of how to implement and use `Artisan`.
+//! ================================================================ NEW
+//! ## Geometry (Rect)
+//! Widgets must contain a single `rect: ui.Rect` field. This field serves a dual purpose:
+//!
+//! - __At initialization:__ `rect.w` and `rect.h` can be set to define the widget's default
+//!   __intrinsic size__. A value of `0` often means "size to content". `rect.x` and
+//!   `rect.y` are typically initialized to `0`.
+//!
+//! - __After `inscribe()` is called:__ The entire `rect` field holds the __final, allocated geometry__
+//!   as determined by a parent container. A widget should update its own `rect` with the
+//!   one passed into `inscribe()` and should not modify it further.
+//!
+//! - `rect: ui.Rect` – The widget's intrinsic and final geometry.
+//!
+//! - `z_index: usize` – z-index, bigger number means more layer.
 
 pub const ui = @import("inscriptions/ui.zig");
 

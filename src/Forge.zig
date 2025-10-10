@@ -1,6 +1,7 @@
 const std = @import("std");
 const mibu = @import("mibu");
 const Runestone = @import("Runestone.zig");
+const ui = @import("inscriptions/ui.zig");
 
 const Self = @This();
 
@@ -63,6 +64,13 @@ pub fn deinit(self: *Self) void {
 
     self.raw_term.disableRawMode() catch {};
     self.stdout.flush() catch {};
+}
+
+pub fn constraints(self: *Self) ui.Constraints {
+    return .{
+        .max_w = self.runestone.term_w,
+        .max_h = self.runestone.term_h,
+    };
 }
 
 pub fn engrave(self: *Self, root: anytype) !void {

@@ -25,11 +25,21 @@ const Todo = struct {
         self.completed = !self.completed;
     }
 
+    pub fn measure(self: *Todo) runes.inscriptions.ui.Size {
+        return .{
+            .h = 1,
+            .w = runes.utils.chars.utf8Len(self.text[0..self.len]) + 6, // 3 checkbox + 3 (space + number + dot)
+        };
+    }
+
     pub fn inscribe(self: *Todo, index: usize, selected: bool, artisan: *runes.inscriptions.Artisan) !usize {
         const prefix = if (self.completed) "(•)" else "( )";
         const style: runes.Rune.Style = .{
             .fg = if (selected) .{ .xterm = .red } else .default,
-            .attr = .{ .bold = selected },
+            .attr = .{
+                .bold = selected,
+                .strikethrough = self.completed,
+            },
         };
 
         return try artisan.inscribe("{s} {d}. {s}", .{ prefix, index + 1, self.text[0..self.len] }, style);
@@ -45,10 +55,8 @@ const TodoList = struct {
     root: Stack,
 
     // geometry (needed by Stack)
-    x: usize = 0,
-    y: usize = 0,
-    h: usize = 0,
-    w: usize = 0,
+    rect: runes.inscriptions.ui.Rect = .{},
+    computed_rect: runes.inscriptions.ui.Rect = .{},
 
     input_selected: bool = false,
 
@@ -79,6 +87,12 @@ const TodoList = struct {
         self.input.deinit();
     }
 
+    pub fn layout(self: *TodoList, constraints: runes.inscriptions.ui.Constraints) runes.inscriptions.ui.Size {
+        const size = self.root.layout(constraints);
+        self.computed_rect = self.root.computed_rect;
+        return size;
+    }
+
     pub fn insert(self: *TodoList, text: []const u8) !void {
         try self.todos.append(self.allocator, Todo.init(text));
         self.list.items = self.todos.items;
@@ -88,7 +102,6 @@ const TodoList = struct {
         // update the list view before drawing
         self.list.items = self.todos.items;
         try self.root.inscribe(stone, sx, sy);
-        runes.utils.copyGeometry(self, self.root);
     }
 
     pub fn handleInput(self: *TodoList, event: mibu.events.Event) !bool {
@@ -178,6 +191,9 @@ pub fn main() !void {
 
     while (true) {
         // -- engrave (draw) into stdout
+        const root_contraints = forge.constraints();
+        _ = root.layout(root_contraints);
+
         try forge.engrave(&root);
         try stdout.flush(); // don't forget to flush
 
